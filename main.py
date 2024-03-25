@@ -1,44 +1,29 @@
-# first push by Katherine!
-import cv2
-import pytesseract
-import numpy as np
-from PIL import ImageGrab
-from translate import Translator
+import os
+import pandas as pd
+import zipfile
 
-# Set the path to the Tesseract executable
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+from pathlib import Path
 
-# Function to capture the screen
-def capture_screen(bbox=(300, 300, 1500, 1000)):
-    cap_scr = np.array(ImageGrab.grab(bbox))
-    cap_scr = cv2.cvtColor(cap_scr, cv2.COLOR_RGB2BGR)
-    return cap_scr
+from arcgis.gis import GIS
+from arcgis.learn import RetinaNet, prepare_data
 
-# Initialize the webcam
-cap = cv2.VideoCapture(0)
-cap.set(3, 640)
-cap.set(4, 480)
+gis = GIS('home')
+training_data = gis.content.get('ccaa060897e24b379a4ed2cfd263c15f')
+training_data
 
-while True:
-    # Read a frame from the webcam
-    ret, frame = cap.read()
+filepath = training_data.download(file_name=training_data.name)
 
-    # Capture the screen as an alternative source (uncomment this if needed)
-    # frame = capture_screen()
 
-    # Perform text detection on the frame
-    recognized_text = pytesseract.image_to_string(frame)
+with zipfile.ZipFile(filepath, 'r') as zip_ref:
+    zip_ref.extractall(Path(filepath).parent)
 
-    # Display the recognized text on the frame in green color
-    cv2.putText(frame, recognized_text, (20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+data_path = Path(os.path.join(os.path.splitext(filepath)[0]))
 
-    # Display the result
-    cv2.imshow("Real-Time Text Detection", frame)
 
-    # Press 'q' to exit the loop
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+data = prepare_data(data_path,
+                    batch_size=4,
+                    dataset_type="PASCAL_VOC_rectangles",
+                    chip_size=480)
 
-# Release the webcam and close the OpenCV window
-cap.release()
-cv2.destroyAllWindows()
+data.classes
+data.show_batch()
