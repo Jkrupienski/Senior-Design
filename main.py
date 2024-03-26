@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import zipfile
+import torchvision
 
 from pathlib import Path
 
