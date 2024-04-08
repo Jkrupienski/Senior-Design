@@ -5,7 +5,7 @@ video = 'Alibi ALI-IPU3030RV IP Camera Highway Surveillance (online-video-cutter
 
 cap = cv2.VideoCapture(video)
 car_cascade = cv2.CascadeClassifier(haar_cascade)
-
+count = 0
 
 while True:
     ret, frames = cap.read()
@@ -18,11 +18,16 @@ while True:
     Y = 500
     # (X1, Y), (X2, Y)
     cv2.line(frames, (X1, Y), (X2, Y), (150,0,0))
-    cv2.line
-    for (x, y, w, h) in cars:
-        cv2.rectangle(frames, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
-    cv2.putText(frames, 'Cars Detected Onscreen: ' + str(len(cars)), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2,cv2.LINE_AA)
+    for (x, y, w, h) in cars:
+        if (x >= 150 and x<=850 and y >= 500):
+            cv2.rectangle(frames, (x, y), (x + w, y + h), (0, 0, 255), 2)
+            count = count +1
+
+    cv2.putText(frames, 'Oncoming Car Counter: ' + str(count), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2,
+                cv2.LINE_AA)
+
+    #cv2.putText(frames, 'Oncoming Car Counter: ' + str(len(cars)), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2,cv2.LINE_AA)
     # Display frames in a window
     cv2.imshow('video', frames)
 
