@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import cv2
+import cv2  # open
 print(cv2.__version__)
 
 cascade_src = 'cars.xml'
