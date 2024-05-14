@@ -1,6 +1,23 @@
 import cv2
 import math
 import datetime
+import sqlite3
+
+db = sqlite3.connect('Highway.db')  # connect to Highway.db database, creates the file if it doesn't exist
+cursor = db.cursor()  # get a cursor object
+
+
+# Create table if it doesn't exist
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS lane_counts (
+    lane_One INTEGER,
+    lane_Two INTEGER,
+    lane_Three INTEGER,
+    date DATE,
+    time TIME
+)
+''')
+db.commit()  # commit changes to the database
 
 haar_cascade = 'cars.xml'  # video path and video to process
 video = 'Alibi ALI-IPU3030RV IP Camera Highway Surveillance (online-video-cutter.com).mp4'
@@ -65,7 +82,16 @@ while True:
                 if (Y - rectangle_thickness) <= centroid[1] <= (Y + rectangle_thickness) and start_x <= centroid[0] <= start_x + width:
                     # if centroid in bounds of rectangle
                     count[lane_num] += 1  # increment lane count
+
+                    # Inserts updates database if vehicles are detected in the bounds
+                    cursor.execute(
+                        'INSERT INTO lane_counts (lane_One, lane_Two, lane_Three, date, time) VALUES (?, ?, ?, ?, ?)',
+                        (count[0], count[1], count[2], current_time.strftime('%Y-%m-%d'),
+                         current_time.strftime('%H:%M:%S')))
+                    db.commit()
+
                     tracked_cent.append((centroid, 1))  # add centroid to tracked cars, set age for decay
+                    # Insert or update the database when a car is counted
                     break  # stop before possibly count centroid in multiple lanes
 
     for lane_num, total in enumerate(count):  # continuously check and display counts for each lane #
@@ -75,6 +101,7 @@ while True:
     cv2.imshow('video', frames)  # display frames
 
     if cv2.waitKey(33) == 27:  # exit if user presses 'esc'
+        db.commit()
         break
 
 cv2.destroyAllWindows()
