@@ -2,6 +2,13 @@ import cv2
 import math
 import datetime
 import sqlite3
+import matplotlib
+
+def plot(cursor):
+    cursor.execute('SELECT lane_One, lane_Two, lane_Three, date, time FROM lane_counts')
+    data = cursor.fetchall()
+
+
 
 db = sqlite3.connect('Highway.db')  # connect to Highway.db database, creates the file if it doesn't exist
 cursor = db.cursor()  # get a cursor object
@@ -59,6 +66,9 @@ while True:
         # break
     gray = cv2.cvtColor(frames, cv2.COLOR_BGR2GRAY)  # convert to grayscale
     cars = car_cascade.detectMultiScale(gray, 1.1, 1)  # detect cars
+    edges = cv2.Canny(gray, 100,200)
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
 
     print_lanes()  # display lanes
 
@@ -98,10 +108,20 @@ while True:
         cv2.putText(frames, f'Lane {lane_num+1} Count: {total}', (10, 30 + lane_num * 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
     # display date and time at bottom of screen
     cv2.putText(frames, current_time.strftime('%Y-%m-%d %H:%M:%S'), (10, frames.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-    cv2.imshow('video', frames)  # display frames
+    #cv2.imshow('video', frames)  # display frames
+    cv2.drawContours(frames, contours, -1, (0,255,0),1)
+    cv2.imshow('video', frames) #attempted contours display
+    #cv2.imshow(cv2.cvtColor(edges, cv2.COLOR_BGR2RGB))
+    cnt = contours[0]
+    M = cv2.moments(cnt)
+    print(M)
 
     if cv2.waitKey(33) == 27:  # exit if user presses 'esc'
         db.commit()
+
+
+
+
         break
 
 cv2.destroyAllWindows()
