@@ -1,6 +1,7 @@
 import cv2
 import math
 import datetime
+import sqlite3  # Import the sqlite3 library
 
 haar_cascade = 'cars.xml'  # video path and video to process
 video = 'Alibi ALI-IPU3030RV IP Camera Highway Surveillance (online-video-cutter.com).mp4'
@@ -14,10 +15,37 @@ Y = 500  # pos of line on vertically
 
 count = [0, 0, 0]  # display counter for each lane
 tracked_cent = []  # track detected centroids
-decay_factor = 0.9  # decay impact of old centroids  (*****)
+decay_factor = 0.9  # decay impact of old centroids
 min_dist = 40  # min distance between each centroid to verify singular car
 
-last_hour = datetime.datetime.now().hour  # get current hour value to compare for count reset
+last_minute = datetime.datetime.now().minute  # current min to compare for count reset
+#last_hour = datetime.datetime.now().hour  # get current hour value to compare for count reset
+
+conn = sqlite3.connect('lane_counts.db')  # create connection to DB
+cursor = conn.cursor()  # assign cursor obj
+
+# create lane_counts table
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS lane_counts (
+    lane_One INTEGER,
+    lane_Two INTEGER,
+    lane_Three INTEGER,
+    date DATE,
+    time TIME,
+    day_of_week TEXT
+)
+''')
+conn.commit()
+
+
+def insert_lane_counts(lane_counts):  # insert lane counts into database
+    current_time = datetime.datetime.now()
+    day_of_week = current_time.strftime('%A')  # Get the day of the week as a string
+    cursor.execute('''
+    INSERT INTO lane_counts (lane_One, lane_Two, lane_Three, date, time, day_of_week)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ''', (lane_counts[0], lane_counts[1], lane_counts[2], current_time.date(), current_time.time().strftime('%H:%M:%S'), day_of_week))
+    conn.commit()
 
 
 def print_lanes():  # display lanes onto screen
@@ -39,8 +67,8 @@ def check_multiple(new, centroids):  # check if multiple centroids per car (aka 
 
 while True:
     ret, frames = cap.read()  # read a frame from the video
-    # if not ret:  # if no more frames, end video
-    # break
+    if not ret:  # if no more frames, end video
+        break
     gray = cv2.cvtColor(frames, cv2.COLOR_BGR2GRAY)  # convert to grayscale
     cars = car_cascade.detectMultiScale(gray, 1.1, 1)  # detect cars
 
@@ -52,9 +80,10 @@ while True:
     tracked_cent = [(cent, age * decay_factor) for (cent, age) in tracked_cent if age * decay_factor > 0.1]
 
     current_time = datetime.datetime.now()  # receive current time
-    if current_time.hour != last_hour:  # if hour has changed
-        count = [0, 0, 0]  # reset lane at start of new hour
-        last_hour = current_time.hour  # store new current hour value
+    if current_time.minute != last_minute:  # if it is a new minute
+        insert_lane_counts(count)  # insert lane counts for previous min into database  <-------- STORE DATA
+        count = [0, 0, 0]  # reset the count for each lane
+        last_minute = current_time.minute  # update last minute
 
     for centroid in new_cent:
         cv2.circle(frames, (centroid[0], centroid[1]), 5, (0, 255, 0), -1)  # display centroid on detected car
@@ -63,8 +92,7 @@ while True:
         if check_multiple(centroid, coords):  # check if current centroids have any x,y close to each other
             # calc lane centroid is in + if within bounds of lane's rectangle
             for lane_num, (start_x, width) in enumerate(lanes):  # loop over each lane
-                if (Y - rectangle_thickness) <= centroid[1] <= (Y + rectangle_thickness) and start_x <= centroid[
-                    0] <= start_x + width:
+                if (Y - rectangle_thickness) <= centroid[1] <= (Y + rectangle_thickness) and start_x <= centroid[0] <= start_x + width:
                     # if centroid in bounds of rectangle
                     count[lane_num] += 1  # increment lane count
                     tracked_cent.append((centroid, 1))  # add centroid to tracked cars, set age for decay
@@ -83,3 +111,4 @@ while True:
 
 cv2.destroyAllWindows()
 cap.release()
+conn.close()  # Close the database connection
