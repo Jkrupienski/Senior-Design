@@ -1,7 +1,7 @@
 import cv2
 import math
 import datetime
-import sqlite3  # Import the sqlite3 library
+import sqlite3
 
 haar_cascade = 'cars.xml'  # video path and video to process
 video = 'Alibi ALI-IPU3030RV IP Camera Highway Surveillance (online-video-cutter.com).mp4'
@@ -40,7 +40,7 @@ conn.commit()
 
 def insert_lane_counts(lane_counts):  # insert lane counts into database
     current_time = datetime.datetime.now()
-    day_of_week = current_time.strftime('%A')  # Get the day of the week as a string
+    day_of_week = current_time.strftime('%A')  # get day of the week as a string
     cursor.execute('''
     INSERT INTO lane_counts (lane_One, lane_Two, lane_Three, date, time, day_of_week)
     VALUES (?, ?, ?, ?, ?, ?)
@@ -81,7 +81,7 @@ while True:
 
     current_time = datetime.datetime.now()  # receive current time
     if current_time.minute != last_minute:  # if it is a new minute
-        insert_lane_counts(count)  # insert lane counts for previous min into database  <-------- STORE DATA
+        insert_lane_counts(count)  # insert lane counts for previous min into database  <-------- STORE LANE DATA
         count = [0, 0, 0]  # reset the count for each lane
         last_minute = current_time.minute  # update last minute
 
