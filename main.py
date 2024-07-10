@@ -3,8 +3,10 @@ import math
 import datetime
 import sqlite3
 
+video = 'CAM01_HW_I90.mp4'
+title = video.rsplit('.', 1)[0]  # extract title w out file extension, this will be specific db table name
+
 haar_cascade = 'cars.xml'  # video path and video to process
-video = 'Alibi ALI-IPU3030RV IP Camera Highway Surveillance (online-video-cutter.com).mp4'
 cap = cv2.VideoCapture(video)  # video capture object
 car_cascade = cv2.CascadeClassifier(haar_cascade)  # car detection classifier
 
@@ -21,30 +23,29 @@ min_dist = 40  # min distance between each centroid to verify singular car
 last_minute = datetime.datetime.now().minute  # current min to compare for count reset
 #last_hour = datetime.datetime.now().hour  # get current hour value to compare for count reset
 
-conn = sqlite3.connect('lane_counts.db')  # create connection to DB
+conn = sqlite3.connect('database/traffic.db')  # create connection to DB
 cursor = conn.cursor()  # assign cursor obj
-
-# create lane_counts table
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS lane_counts (
+# create table for camera if it does not exist already ***
+new_table = f'''
+    CREATE TABLE IF NOT EXISTS {title} (
     lane_One INTEGER,
     lane_Two INTEGER,
     lane_Three INTEGER,
-    date DATE,
-    time TIME,
-    day_of_week TEXT
-)
-''')
+    date TEXT,
+    time TEXT,
+    DOTW TEXT
+ )
+'''
+cursor.execute(new_table)
 conn.commit()
 
-
-def insert_lane_counts(lane_counts):  # insert lane counts into database
+def insert_lane_counts(table_name, lane_counts):  # insert lane counts into database
     current_time = datetime.datetime.now()
-    day_of_week = current_time.strftime('%A')  # get day of the week as a string
-    cursor.execute('''
-    INSERT INTO lane_counts (lane_One, lane_Two, lane_Three, date, time, day_of_week)
+    DOTW = current_time.strftime('%A')  # get day of the week as a string
+    cursor.execute(f'''
+    INSERT INTO {table_name} (lane_One, lane_Two, lane_Three, date, time, DOTW)
     VALUES (?, ?, ?, ?, ?, ?)
-    ''', (lane_counts[0], lane_counts[1], lane_counts[2], current_time.date(), current_time.time().strftime('%H:%M:%S'), day_of_week))
+    ''', (lane_counts[0], lane_counts[1], lane_counts[2], current_time.date(), current_time.time().strftime('%H:%M:%S'), DOTW))
     conn.commit()
 
 
@@ -81,7 +82,7 @@ while True:
 
     current_time = datetime.datetime.now()  # receive current time
     if current_time.minute != last_minute:  # if it is a new minute
-        insert_lane_counts(count)  # insert lane counts for previous min into database  <-------- STORE LANE DATA
+        insert_lane_counts(title, count)  # insert lane counts for previous min into database  <-------- STORE LANE DATA INTO SPECIFIC CAMERA TABLE ****
         count = [0, 0, 0]  # reset the count for each lane
         last_minute = current_time.minute  # update last minute
 
@@ -111,4 +112,4 @@ while True:
 
 cv2.destroyAllWindows()
 cap.release()
-conn.close()  # Close the database connection
+conn.close()  # close the database connection

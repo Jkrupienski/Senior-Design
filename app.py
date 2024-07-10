@@ -6,8 +6,8 @@ import pandas as pd  # import pandas lib for data manipulation and analysis
 import sqlite3
 
 app = Flask(__name__)  # create Flask class instance for web application
-app.config['SECRET_KEY'] = 'key'  # securely sign in to session cookie ** CHANGE THIS *****
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////users.db'  # URI for db
+app.config['SECRET_KEY'] = 'KJSDP2024BASNET'  # securely sign in to session cookie ** CHANGE THIS *****
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database/traffic.db'  # URI for db
 db = SQLAlchemy(app)  # init SQLAlc w flask app
 login_manager = LoginManager(app)  # initialize login manager
 bcrypt = Bcrypt(app)  # init for password hashing
@@ -57,7 +57,8 @@ def public_data():
 
 def get_lane_counts():
     conn = sqlite3.connect('lane_counts.db')  # connect to db
-    query = "SELECT * FROM lane_counts ORDER BY date DESC, time DESC LIMIT 60"  # get last 60 entries by date and time decending order
+    table_name = "CAM01_HW_I90"  # or "CAM02_AVE_HUNT", find way to change it depending on desired camera ***** (overall issue needing to be addressed)
+    query = f"SELECT * FROM {table_name} ORDER BY date DESC, time DESC LIMIT 60"  # get last 60 entries by date and time decending order
     df = pd.read_sql_query(query, conn)  # execute query and read the results into a pandas DataFrame
     conn.close()  # close db connection
     return df  # return dataframe containing lane counts

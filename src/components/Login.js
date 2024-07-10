@@ -5,13 +5,13 @@ function Login({ onLogin }) {  // define login component taking 'onLogin' as a p
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
 
-    const handelSubmit = (e) => {  // define fnc 'handleSubmit' to handle form submission
+    const handleSubmit = (e) => {  // define fnc 'handleSubmit' to handle form submission
         e.preventDefault();  // prevent default form submission behavior (would refresh page)
         onLogin(username, password);  // call 'onLogin' func passed as prop w current user and pass
     };
 
     return (  // return JSX for component
-      <form onSubmit={handelSubmit}>  {/* def form element w an onSubmit event handler */}
+      <form onSubmit={handleSubmit}>  {/* def form element w an onSubmit event handler */}
           <h2>Login</h2>  {/* heading for login pg */}
           <div>  {/* def div for username input */}
               <label>Username</label>  {/* label username input */}
