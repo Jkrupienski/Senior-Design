@@ -14,8 +14,7 @@ function Home() {  // define Home component
 
     return (  // return jsx
         <div>
-            <h1>Public Data</h1>  {/* public data heading */}
-            {/* if 'data' is not null, render data as JSON string, else display loading msg */}
+            <h1>Public Data</h1>
             {data ? <pre>{JSON.stringify(data,null,2)}</pre> : 'Loading...'}
         </div>
     );

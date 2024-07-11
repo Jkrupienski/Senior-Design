@@ -11,29 +11,29 @@ function Login({ onLogin }) {  // define login component taking 'onLogin' as a p
     };
 
     return (  // return JSX for component
-      <form onSubmit={handleSubmit}>  {/* def form element w an onSubmit event handler */}
-          <h2>Login</h2>  {/* heading for login pg */}
-          <div>  {/* def div for username input */}
-              <label>Username</label>  {/* label username input */}
-              <input
-                  type="text"  {/* declare input type as text */}
-                  value={username}  {/* binds input value to username state */}
-                  onChange={ (e) => setUsername (e.target.value)}  {/* updates username state on input change */}
-                  required  {/* required field */}
-              />
-          </div>
-          <div>  {/* def div for password input */}
-              <label>Password</label>
-              <input
-                type={"password"}  {/* masks input as password type */}
-                value={password}
-                onChange={ (e) => setPassword(e.target.value)}
-                required
-              />
-          </div>
-          <button type="LOGIN">Login</button>  {/* button to submit login info */}
-      </form>
+        <form onSubmit={handleSubmit}>
+            <h2>Login</h2>
+            <div>
+                <label>Username</label>
+                <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                />
+            </div>
+            <div>
+                <label>Password</label>
+                <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                />
+            </div>
+            <button type="submit">Login</button>
+        </form>
     );
 }
 
-export default Login;  // export login as defualt export
+export default Login;  // export login as default export

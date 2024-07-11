@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">  <!-- set char encoding for doc -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">  <!-- ensure page is responsive, set viewpoint as device's width -->
-    <title>Live Lane Traffic Volume</title>  <!-- webpage title in browser tab -->
+    <title>Private Traffic Data</title>  <!-- webpage title in browser tab -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>  <!-- includes Chart.js library to render charts -->
 </head>
 <body>
-    <h1>Live Lane Traffic Volume</h1>  <!-- heading of webpage -->
+    <div id="root"></div>  <!-- root element for React -->
+    <script src="/bundle.js"></script>  <!-- load React -->
+    <h1>Private Live Lane Traffic Volume</h1>  <!-- heading of webpage -->
     <canvas id="trafficChart"></canvas>  <!-- canvas where chart will be placed -->
     <script>
         let trafficChart;  // declare variable to hold chart

@@ -35,7 +35,7 @@ def login():
     return jsonify({"status": "failure"})  # login failure
 
 
-@app.route('logout')  # route for user logout
+@app.route('/logout')  # route for user logout
 @login_required  # required the user to be logged in to access route
 def logout():
     logout_user()  # logout using flask login
@@ -55,8 +55,8 @@ def public_data():
     return jsonify(data)  # return data as json
 
 
-def get_lane_counts():
-    conn = sqlite3.connect('lane_counts.db')  # connect to db
+def get_lane_counts(camera_id):
+    conn = sqlite3.connect('database/traffic.db')  # connect to db
     table_name = "CAM01_HW_I90"  # or "CAM02_AVE_HUNT", find way to change it depending on desired camera ***** (overall issue needing to be addressed)
     query = f"SELECT * FROM {table_name} ORDER BY date DESC, time DESC LIMIT 60"  # get last 60 entries by date and time decending order
     df = pd.read_sql_query(query, conn)  # execute query and read the results into a pandas DataFrame
@@ -66,7 +66,7 @@ def get_lane_counts():
 
 @app.route('/')
 def index():
-    return render_template('index.html')  # render 'index.html' template when URL accessed
+    return render_template('index_flask.html')  # render 'index.html' template when URL accessed
 
 
 @app.route('/data')

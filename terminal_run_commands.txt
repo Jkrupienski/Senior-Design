@@ -1,0 +1,24 @@
+Flask BACKEND terminal:
+
+1. create and activate virtual environment
+2. install dependencies
+3. run flask server
+
+python -m venv venv
+.\venv\Scripts\activate
+pip install flask flask-sqlalchemy flask-login flask-bcrypt numpy pandas opencv-python
+python app.py
+
+----------------------------------------
+React FRONTEND terminal:
+
+1. install Node.js dependencies
+2. start React development server
+
+npm install
+npm start
+
+IF ALREADY INSTALLED w issues:
+(remove node_modules file)
+rm package-lock.json
+npm cache clean --force
