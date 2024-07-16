@@ -1,24 +1,14 @@
-Flask BACKEND terminal:
+* File > Settings > Lang & Framework > Flask > press to see check box > 'Apply'
+press F12 > Console in website for debugging
 
-1. create and activate virtual environment
-2. install dependencies
-3. run flask server
+1. create virtual environment once:
+   > python -m venv venv
 
-python -m venv venv
-.\venv\Scripts\activate
-pip install flask flask-sqlalchemy flask-login flask-bcrypt numpy pandas opencv-python
-python app.py
+2. activate virtual environment:
+   > .\venv\Scripts\activate
 
-----------------------------------------
-React FRONTEND terminal:
+3. install dependencies:
+   > pip install flask flask-sqlalchemy flask-login flask-bcrypt numpy pandas opencv-python
 
-1. install Node.js dependencies
-2. start React development server
-
-npm install
-npm start
-
-IF ALREADY INSTALLED w issues:
-(remove node_modules file)
-rm package-lock.json
-npm cache clean --force
+4. run flask server (MOST RECENT (old is: python app.py):
+   > flask run

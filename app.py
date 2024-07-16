@@ -1,7 +1,7 @@
 # app.py is the entry point for the flask application
 from flask import Flask, render_template, jsonify, request, redirect, url_for  # import modules from Flask and others
 from flask_sqlalchemy import SQLAlchemy  # import for db integration
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user  # login manager/user auth
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user  # login manager/user auth
 from flask_bcrypt import Bcrypt  # import for password hashing
 import pandas as pd  # import pandas lib for data manipulation and analysis
 import sqlite3
@@ -54,7 +54,15 @@ def logout():
 @app.route('/data', methods=['GET'])  # route for protected data, allow only GET method
 @login_required  # require user to be logged in to access route
 def get_data():
-    df = get_lane_counts()  # gather lane data from db
+    location = request.args.get('location')
+    time = request.args.get('time')
+
+    conn = sqlite3.connect('database/traffic.db')
+    cursor = conn.cursor()
+    query = 'SELECT * FROM traffic_data WHERE location = ? AND time = ?'
+    cursor.execute(query, (location, time))
+    df = cursor.fetchall()
+    conn.close()
     data = {
         'lane_One': df['lane_One'].tolist(),
         'lane_Two': df['lane_Two'].tolist(),
