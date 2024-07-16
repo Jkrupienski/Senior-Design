@@ -38,6 +38,8 @@ new_table = f'''
 '''
 cursor.execute(new_table)
 conn.commit()
+print(f"{title} is live collecting data.")
+
 
 def insert_lane_counts(table_name, lane_counts):  # insert lane counts into database
     current_time = datetime.datetime.now()
@@ -109,6 +111,9 @@ while True:
 
     if cv2.waitKey(33) == 27:  # exit if user presses 'esc'
         break
+
+if any(count):  # if any remaining count when closed or stream ends
+    insert_lane_counts(title, count)  # add to database (other than that, saves data top of every minute)
 
 cv2.destroyAllWindows()
 cap.release()

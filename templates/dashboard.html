@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{url_for('static', filename='css/style.css}}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Employee Dashboard</h1>
+    <!-- search form for searching data -->
+    <form id="search-form">
+        <!-- labels and input fields for search parameters -->
+        <label>
+            Location:
+            <input type="text" name="location">
+        </label>
+        <label>
+            Date:
+            <input type="time" name="time">
+        </label>
+        <button type="submit">Search</button>
+    </form>
+    <!-- container to hold data and chart -->
+    <div style="display: flex;">
+        <!-- divider to display data (1/3 of container) -->
+        <div style="flex: 1;" id="data-container">Loading ...</div>
+        <!-- div to hold canvas element for chart (2/3 of container) -->
+        <div style="flex: 2;">
+            <canvas id="trafficChart"></canvas>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
