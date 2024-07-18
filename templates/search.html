@@ -1,0 +1,102 @@
+<!-- search.html search page for past data -->
+{% extends "base.html" %}  <!-- extend base template -->
+
+{% block title %}Search{% endblock %}  <!-- title -->
+
+{% block content %}
+<div class="search-container">
+    <form id="search-form" class="form-container">
+        <!-- top row: camera id, start date, end date -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="camera_id">Camera ID</label>
+                <input type="text" id="camera_id" name="camera_id" required>
+            </div>
+            <div class="form-group">
+                <label for="start_date">Start Date</label>
+                <input type="date" id="start_date" name="start_date">
+            </div>
+            <div class="form-group">
+                <label for="end_date">End Date</label>
+                <input type="date" id="end_date" name="end_date">
+            </div>
+        </div>
+        <!-- second row: start time, end time, day of the week -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="start_time">Start Time</label>
+                <input type="time" id="start_time" name="start_time">
+            </div>
+            <div class="form-group">
+                <label for="end_time">End Time</label>
+                <input type="time" id="end_time" name="end_time">
+            </div>
+            <div class="form-group">
+                <label for="day_of_week">Day of the Week</label>
+                <select id="day_of_week" name="day_of_week">
+                    <option value="">Select Day</option>
+                    <option value="Monday">Monday</option>
+                    <option value="Tuesday">Tuesday</option>
+                    <option value="Wednesday">Wednesday</option>
+                    <option value="Thursday">Thursday</option>
+                    <option value="Friday">Friday</option>
+                    <option value="Saturday">Saturday</option>
+                    <option value="Sunday">Sunday</option>
+                </select>
+            </div>
+        </div>
+        <!-- third row: lane, volume min, volume max -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="lane">Specific Lane Volume</label>
+                <select id="lane" name="lane">
+                    <option value="">Select Lane</option>
+                    <option value="lane_One">Lane One</option>
+                    <option value="lane_Two">Lane Two</option>
+                    <option value="lane_Three">Lane Three</option>
+                </select>
+            </div>
+            <div class="form-group volume-group">
+                <label for="volume_min">Volume Min</label>
+                <input type="number" id="volume_min" name="volume_min">
+            </div>
+            <div class="form-group volume-group">
+                <label for="volume_max">Volume Max</label>
+                <input type="number" id="volume_max" name="volume_max">
+            </div>
+        </div>
+        <!-- buttons row: search, clear, clean up -->
+        <div class="button-row">
+            <button type="submit">Search</button>
+            <button type="button" id="clear-button">Clear</button>
+            <button type="button" id="cleanup-button" class="cleanup-button">Clean Up</button>
+        </div>
+    </form>
+</div>
+<div class="table-container">  <!-- container for data table -->
+    <table class="data-table">  <!-- data table for search results -->
+        <thead>
+            <tr>
+                <th style="width: 17%;">Date</th>  <!-- col for date -->
+                <th style="width: 17%;">Time</th>  <!-- time -->
+                <th style="width: 16%;">DOTW</th> <!-- day of the week -->
+                <th style="width: 16%;">Lane One Vol.</th>  <!-- lane volumes -->
+                <th style="width: 16%;">Lane Two Vol.</th>
+                <th style="width: 16%;">Lane Three Vol.</th>
+            </tr>
+        </thead>
+    </table>
+    <div class="table-body-container">  <!-- container for table body -->
+        <table class="data-table" id="data-table-body">  <!-- data table for body with id "data-table-body" -->
+            <tbody>
+                 <!-- data rows will be inserted here -->
+            </tbody>
+        </table>
+    </div>
+    <canvas id="trafficChart"></canvas>  <!-- canvas for traffic chart -->
+</div>
+{% endblock %}
+
+{% block scripts %}   <!-- go to search.js for js code -->
+<script src="{{ url_for('static', filename='js/search.js') }}"></script>
+{% endblock %}
