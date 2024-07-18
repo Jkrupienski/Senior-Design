@@ -1,3 +1,5 @@
+# do not need this anymore for now, i may base the methods back here
+'''
 import cv2
 import math
 import datetime
@@ -27,14 +29,14 @@ conn = sqlite3.connect('database/traffic.db')  # create connection to DB
 cursor = conn.cursor()  # assign cursor obj
 # create table for camera if it does not exist already ***
 new_table = f'''
-    CREATE TABLE IF NOT EXISTS {title} (
-    lane_One INTEGER,
-    lane_Two INTEGER,
-    lane_Three INTEGER,
-    date TEXT,
-    time TEXT,
-    DOTW TEXT
- )
+    #CREATE TABLE IF NOT EXISTS {title} (
+    #lane_One INTEGER,
+    #lane_Two INTEGER,
+    #lane_Three INTEGER,
+    #date TEXT,
+    #time TEXT,
+    #DOTW TEXT
+ #)
 '''
 cursor.execute(new_table)
 conn.commit()
@@ -44,10 +46,10 @@ print(f"{title} is live collecting data.")
 def insert_lane_counts(table_name, lane_counts):  # insert lane counts into database
     current_time = datetime.datetime.now()
     DOTW = current_time.strftime('%A')  # get day of the week as a string
-    cursor.execute(f'''
+    cursor.execute(f
     INSERT INTO {table_name} (lane_One, lane_Two, lane_Three, date, time, DOTW)
     VALUES (?, ?, ?, ?, ?, ?)
-    ''', (lane_counts[0], lane_counts[1], lane_counts[2], current_time.date(), current_time.time().strftime('%H:%M:%S'), DOTW))
+    , (lane_counts[0], lane_counts[1], lane_counts[2], current_time.date(), current_time.time().strftime('%H:%M:%S'), DOTW))
     conn.commit()
 
 
@@ -108,7 +110,7 @@ while True:
     cv2.putText(frames, current_time.strftime('%Y-%m-%d %H:%M:%S'), (10, frames.shape[0] - 10),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
     cv2.imshow('video', frames)  # display frames
-
+a
     if cv2.waitKey(33) == 27:  # exit if user presses 'esc'
         break
 
@@ -118,3 +120,4 @@ if any(count):  # if any remaining count when closed or stream ends
 cv2.destroyAllWindows()
 cap.release()
 conn.close()  # close the database connection
+'''

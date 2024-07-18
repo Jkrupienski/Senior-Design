@@ -1,28 +1,291 @@
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
+body {  /* global body styles */
+    font-size: 14px;  /*  font size */
+    display: flex;  /* flexbox layout */
+    margin: 0;  /* remove default margin */
+    padding: 0;  /* remove default padding */
+    font-family: Calibri, sans-serif;  /* set font  */
+}
+
+.sidebar {  /* sidebar styles */
+    background-color: #333;  /* background color */
+    height: 100vh;  /* height as full viewport height */
+    width: 200px;  /* set width */
+    position: fixed;  /* fix position on screen */
+    top: 0;  /* position at the top */
+    left: 0;  /* position at the left */
+    overflow-x: hidden;  /* hide horizontal overflow */
+    padding-top: 20px;  /* add padding at the top */
+    display: flex;  /* use flexbox layout */
+    flex-direction: column;  /* stack children vertically */
+    align-items: center;  /* center children horizontally */
+}
+
+.sidebar-content {  /* sidebar content styles */
+    display: flex;  /* use flexbox layout */
+    flex-direction: column;  /* stack children vertically */
+    align-items: center;  /* center children horizontally */
+    width: 100%;  /* set width to full */
+}
+
+.logo-section {  /* logo section styles */
+    text-align: center;  /* center text */
+    margin-bottom: 20px;  /* add bottom margin */
+}
+
+.logo {  /* logo image styles */
+    width: 75%;  /* set width */
+    height: auto;  /* maintain aspect ratio */
+}
+
+.user-info {  /* user info section styles */
+    text-align: center;  /* center text */
+    margin-bottom: 20px;  /* add bottom margin */
+}
+
+.nav-buttons {  /* nav buttons container styles */
+    display: flex;  /* use flexbox layout */
+    flex-direction: column;  /* stack children vertically */
+    align-items: center;  /* center children horizontally */
+    width: 100%;  /* set width to full */
+}
+
+.nav-button {  /* nav button styles */
+    display: block;  /* display as block */
+    color: white;  /* set text color */
+    text-align: center;  /* center text */
+    padding: 10px;  /* add padding */
+    text-decoration: none;  /* remove underline */
+    width: 80%;  /* set width */
+    margin: 5px 0;  /* add vertical margin */
+    background-color: #444;  /* set background color */
+    border-radius: 5px;  /* round corners */
+}
+
+.nav-button:hover {  /* nav button hover effect */
+    background-color: #575757;  /* change background color on hover */
+}
+
+.content {  /* main content styles */
+    margin-left: 220px;  /* add left margin to avoid sidebar */
+    padding: 20px;  /* add padding */
+    width: calc(100% - 220px);  /* set width to fill remaining space */
+}
+
+h1 {  /* h1 styles */
+    font-size: 24px;  /* set font size */
+}
+
+h2 {  /* h2 styles */
+    font-size: 18px;  /* set font size */
+}
+
+.search-container {  /* search container styles */
+    border: 1px solid #ccc;  /* set border */
+    padding: 20px;  /* add padding */
+    border-radius: 10px;  /* round corners */
+    background-color: #f8f9fa;  /* set background color */
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);  /* add box shadow */
+    margin-bottom: 20px;  /* add bottom margin */
+    position: relative;
+}
+
+.form-container {  /* form container styles */
+    display: flex;  /* use flexbox layout */
+    flex-direction: column;  /* stack horizontally? */
+    gap: 10px;  /* add gap between elements */
+}
+
+.form-row {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    background-color: #f4f4f4;
+    gap: 10px; /* add gap between columns */
 }
 
-h1 {
-    color: #333;
+.form-group {  /* form group styles */
+    flex: 1;  /* allow to grow */
+    min-width: 150px;  /* set min width */
+    max-width: 200px;  /* set max width */
 }
 
-form {
-    margin-bottom: 20px;
+.volume-group {
+    min-width: 72px; /* adjust width for volume boxes */
+    max-width: 72px;
+    margin: 0 10px; /* Add horizontal margin to create a gap */
 }
 
-#data-container {
-    margin-right: 20px;
+.form-group input, .form-group select {
+    width: 90%;  /* adjust width to make them a little smaller */
+    padding: 8px;  /* add padding */
+    margin-top: 5px;  /* add top margin */
+    border-radius: 5px;  /* round corners */
+    border: 1px solid #ccc;  /* set border */
 }
 
-canvas {
+.button-row {
+    display: flex;
+    justify-content: flex-end; /* align buttons to the right */
+    gap: 10px; /* add gap between buttons */
+    padding-top: 20px;
+}
+
+.button-group {
+    display: flex;
+    justify-content: flex-end;  /* align to the right */
     width: 100%;
-    height: 400px;
+    padding-top: 20px;
+}
+
+.form-group button, .button-group button {
+    background-color: #007bff;  /* set background color to blue */
+    color: white;  /* set text color to white */
+    border: none;  /* remove border */
+    cursor: pointer;  /* change cursor on hover */
+    width: auto;  /* ensure buttons don't take up full width */
+    padding: 10px 10px;  /* button size/ padding for better appearance */
+    border-radius: 5px;  /* round corners */
+    margin-left: 10px;  /* add margin between buttons */
+}
+
+.form-group button:hover, .button-group button:hover {  /* button hover effect */
+    background-color: #0056b3;  /* change background color on hover */
+}
+
+.table-container {  /* table container styles */
+    width: 100%;  /* set width to full */
+    margin-top: 20px;  /* add top margin */
+    /* max-height: 300px;  /* set maximum height */
+    overflow: hidden;  /* hide overflow */
+}
+
+.table-body-container {  /* table body container styles */
+    width: 100%;  /* set width to full */
+    max-height: 300px;  /* set maximum height */
+    overflow-y: scroll;  /* add vertical scroll */
+}
+
+.data-table {  /* data table styles */
+    width: 100%;  /* set width to full */
+    border-collapse: collapse;  /* collapse borders */
+    font-size: 14px;  /* set font size */
+}
+
+.data-table th, .data-table td {  /* table cell styles */
+    border: 1px solid #ccc;  /* set border */
+    padding: 8px;  /* add padding */
+    text-align: left;  /* align text to the left */
+}
+
+.data-table th {  /* table header styles */
+    background-color: #f9f9f9;  /* set background color */
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.video-container img {  /* video container image styles */
+    width: 100%;  /* set width to full */
+    height: auto;  /* maintain aspect ratio */
+}
+
+canvas {  /* canvas element styles */
+    width: 100%;  /* set width to full */
+    height: 400px;  /* set height */
+}
+
+.login-container {  /* login container styles */
+    max-width: 400px;  /* set maximum width */
+    margin: 100px auto;  /* center horizontally and add top margin */
+    padding: 20px;  /* add padding */
+    border: 1px solid #ccc;  /* set border */
+    border-radius: 10px;  /* round corners */
+    background-color: #f8f9fa;  /* set background color */
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);  /* add box shadow */
+}
+
+.login-container h1 {  /* login container heading styles */
+    font-size: 24px;  /* set font size */
+    text-align: center;  /* center text */
+    margin-bottom: 20px;  /* add bottom margin */
+}
+
+.login-container .form-group {  /* login form group styles */
+    margin-bottom: 15px;  /* add bottom margin */
+}
+
+.login-container .form-group label {  /* login form group label styles */
+    display: block;  /* display as block */
+    margin-bottom: 5px;  /* add bottom margin */
+}
+
+.login-container .form-group input {  /* login form group input styles */
+    width: calc(100% - 16px);  /* set width */
+    padding: 8px;  /* add padding */
+    border-radius: 5px;  /* round corners */
+    border: 1px solid #ccc;  /* set border */
+}
+
+.login-container .form-group button {  /* login form group button styles */
+    width: 100%;  /* set width to full */
+    padding: 10px;  /* add padding */
+    background-color: #007bff;  /* set background color */
+    color: white;  /* set text color */
+    border: none;  /* remove border */
+    border-radius: 5px;  /* round corners */
+    cursor: pointer;  /* change cursor on hover */
+}
+
+.login-container .form-group button:hover {  /* login form group button hover effect */
+    background-color: #0056b3;  /* change background color on hover */
+}
+
+.login-container .error {  /* login error message styles */
+    color: red;  /* set text color to red */
+    text-align: center;  /* center text */
+    margin-top: 10px;  /* add top margin */
+}
+
+input[type="text"], input[type="password"], input[type="email"], select {  /* input and select styles */
+    width: 100%;  /* set width to full */
+    padding: 10px;  /* add padding */
+    margin-top: 5px;  /* add top margin */
+    border-radius: 5px;  /* round corners */
+    border: 1px solid #ccc;  /* set border */
+    box-sizing: border-box;  /* include padding and border in element's total width and height */
+}
+
+.password-form {  /* password form styles */
+    max-width: 400px;  /* set maximum width */
+    margin: auto;  /* center horizontally */
+    padding: 20px;  /* add padding */
+    border: 1px solid #ccc;  /* set border */
+    border-radius: 10px;  /* round corners */
+    background-color: #f8f9fa;  /* set background color */
+    box-shadow: 2px 2px 10px;  /* add box shadow */
+}
+
+.success {  /* success message styles */
+    color: green;  /* set text color to green */
+    text-align: center;  /* center text */
+    margin-top: 10px;  /* add top margin */
+}
+
+.danger {  /* danger message styles */
+    color: red;  /* set text color to red */
+    text-align: center;  /* center text */
+    margin-top: 10px;  /* add top margin */
+}
+
+.flash-messages {
+    margin: 20px;
+}
+
+.flash-message {
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.flash-message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
 }

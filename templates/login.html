@@ -1,28 +1,30 @@
-<!-- LOGIN PAGE, take username and password as user input, send to login route in app.py -->
+<!-- login.html logs user in -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
-    <!-- external css file for styles in static dir -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <!-- user login form, POSTs data to login route -->
-    <form action="/login" method="POST">
-        <h2>Login</h2>
-        <!-- username, password input field -->
-        <div>
+<div class="login-container">
+    <h1>Login</h1>  <!-- pg header -->
+    <form method="POST">  <!-- form to log in -->
+        <div class="form-group">
             <label for="username">Username</label>
-            <input type="text" id="username" name="username" required>
+            <input type="text" id="username" name="username" required>  <!-- input field for username -->
         </div>
-        <div>
+        <div class="form-group">
             <label for="password">Password</label>
-            <input type="text" id="password" name="password" required>
+            <input type="password" id="password" name="password" required>  <!-- input for password -->
         </div>
-        <!-- submit button -->
-        <button type="submit">Login</button>
+        <div class="form-group">
+            <button type="submit">Login</button>  <!-- login/submit form button -->
+        </div>
     </form>
+    {% if error %}
+    <p class="error">{{ error }}</p>  <!-- error msg -->
+    {% endif %}
+</div>
 </body>
 </html>

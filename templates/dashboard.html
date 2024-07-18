@@ -1,36 +1,43 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-    <h1>Employee Dashboard</h1>
-    <!-- search form for searching data -->
-    <form id="search-form">
-        <!-- labels and input fields for search parameters -->
-        <label>
-            Location:
-            <input type="text" name="location">
-        </label>
-        <label>
-            Date:
-            <input type="time" name="time">
-        </label>
-        <button type="submit">Search</button>
-    </form>
-    <!-- container to hold data and chart -->
-    <div style="display: flex;">
-        <!-- divider to display data (1/3 of container) -->
-        <div style="flex: 1;" id="data-container">Loading ...</div>
-        <!-- div to hold canvas element for chart (2/3 of container) -->
-        <div style="flex: 2;">
-            <canvas id="trafficChart"></canvas>
+<!--  dashboard.html displays desired video feed, supposed to show live graph too but is not currently -->
+{% extends "base.html" %}  <!-- extend base template -->
+
+{% block title %}Dashboard{% endblock %}  <!-- title -->
+
+{% block content %}
+<div class="main-container" style="display: flex;">  <!-- main container for layout -->
+    <div style="width: 66%;">  <!-- take up left 2/3 of page so live charts can be displayed on right (or bottom?) -->
+        <h1>Employee Dashboard</h1>  <!-- page header -->
+        {% if current_user.is_authenticated %}  <!-- ensure user logged in -->
+        <form id="search-form" class="form-container">  <!-- container for search box -->
+            <div class="form-group">
+                <label for="camera_id">Camera ID</label>  <!-- label for cam search box -->
+                <select id="camera_id" name="camera_id" required>  <!-- camera dropdown box, required field for search -->
+                    {% for camera in cameras %}  <!-- loop thru cam list -->
+                    <option value="{{ camera }}">{{ camera }}</option>  <!-- give an option for each available cam -->
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <button type="submit">Select Camera</button>  <!-- select camera submit button -->
+                <button type="button" id="clear-search">Clear</button>  <!-- button to clear form (turn into stop/pause) -->
+            </div>
+        </form>
+        <h2 id="camera-title"></h2>  <!-- header for the selected video feed cam name -->
+        <div class="video-container">
+            <img id="video-feed" src="{{ url_for('video_feed', camera_id='CAM01_HW_I90') }}">  <!-- default cam in vid container -->
+        </div>
+        {% else %}  <!-- if user not logged in -->
+        <a href="{{ url_for('login') }}">Login</a>  <!-- login link if user is not yet authenticated -->
+        {% endif %}
+    </div>
+    <div style="width: 33%;">  <!-- right 1/3 for chart(s) -->
+        <div class="chart-container">
+            <canvas id="trafficChart"></canvas>  <!-- GO IN FOR TRAFFIC CHART ON DASHBOARD NOW -->
         </div>
     </div>
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-</body>
-</html>
+</div>
+{% endblock %}
+
+{% block scripts %}  <!-- go to dashboard.js for js code -->
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

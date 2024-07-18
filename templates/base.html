@@ -1,0 +1,46 @@
+ <!-- base.html holds a base structure for the website including the sidebar as a main component -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>  <!-- block for title -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">  <!-- link to styles.css -->
+    {% block styles %}{% endblock %}  <!-- additional styles, placeholder -->
+</head>
+<body>
+    <nav class="sidebar">  <!-- sidebar navigation -->
+        <div class="sidebar-content">  <!-- container for sidebar content (class specific sections???) -->
+            <div class="logo-section">  <!-- section for logo -->
+                <h1>WITraffic</h1>  <!-- site title -->
+                <img src="{{ url_for('static', filename='images/wit_logo2.png') }}" alt="WIT Logo" class="logo">  <!-- logo image -->
+            </div>
+            <div class="user-info">  <!-- section to display current user's info -->
+                <p>{{ current_user.name }}</p>  <!-- name -->
+                <p>{{ current_user.email }}</p>  <!-- email -->
+                <p>Access Level {{ current_user.access }}: {{ current_user.role }}</p>  <!-- access level and role -->
+            </div>
+            <div class="nav-buttons">  <!-- section for nav buttons -->
+                <a href="{{ url_for('profile') }}" class="nav-button">Profile</a>  <!-- link to profile pg -->
+                <a href="{{ url_for('search') }}" class="nav-button">Search</a>  <!-- search pg -->
+                <a href="{{ url_for('dashboard') }}" class="nav-button">Dashboard</a>  <!-- dashboard pg -->
+                <a href="{{ url_for('logout') }}" class="nav-button">Logout</a>  <!-- logout, goes to login pg -->
+            </div>
+        </div>
+    </nav>
+    <div class="content">  <!-- section for main content -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>  <!-- link to external js file -->
+    {% block scripts %}{% endblock %}  <!-- additional scripts, placeholder -->
+</body>
+</html>

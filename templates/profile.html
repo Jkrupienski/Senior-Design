@@ -1,0 +1,35 @@
+<!-- profile.html displays user's info and allows password reset -->
+{% extends "base.html" %}  <!-- extend base template -->
+
+{% block title %}Profile{% endblock %}  <!-- title -->
+
+{% block content %}
+<div class="profile-container">
+    <h1>Profile</h1>  <!-- pg header -->
+    <div class="profile-info">  <!-- display current user's profile information -->
+        <p><strong>Name:</strong> {{ current_user.name }}</p>  <!-- name -->
+        <p><strong>Email:</strong> {{ current_user.email }}</p>  <!-- email -->
+        <p>Access Level {{ current_user.access }}: {{ current_user.role }}</p>   <!-- access level and role -->
+    </div>
+    <form action="{{ url_for('change_password') }}" method="POST" class="password-form">  <!-- form to change password -->
+        <div class="form-group">  <!-- old password -->
+            <label for="old_password">Old Password</label>
+            <input type="password" id="old_password" name="old_password" required>  <!-- old pass input -->
+        </div>
+        <div class="form-group">  <!-- new password -->
+            <label for="new_password">New Password</label>
+            <input type="password" id="new_password" name="new_password" required>  <!-- new pass input -->
+        </div>
+        <button type="submit" class="form-button">Change Password</button>  <!-- submit button to change password -->
+        {% with messages = get_flashed_messages(with_categories=true) %}  <!-- get flashed success/error messages -->
+            {% if messages %}
+                <div class="form-group">
+                    {% for category, message in messages %}
+                        <p class="{{ category }}">{{ message }}</p>  <!-- display message of success or failure -->
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+    </form>
+</div>
+{% endblock %}

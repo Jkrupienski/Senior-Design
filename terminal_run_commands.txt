@@ -1,14 +1,14 @@
 * File > Settings > Lang & Framework > Flask > press to see check box > 'Apply'
 press F12 > Console in website for debugging
 
-1. create virtual environment once:
+1. create virtual environment * only need to do once:
    > python -m venv venv
 
 2. activate virtual environment:
    > .\venv\Scripts\activate
 
 3. install dependencies:
-   > pip install flask flask-sqlalchemy flask-login flask-bcrypt numpy pandas opencv-python
+   > pip install flask flask-sqlalchemy flask-login flask-bcrypt numpy pandas opencv-python flash
 
 4. run flask server (MOST RECENT (old is: python app.py):
    > flask run
