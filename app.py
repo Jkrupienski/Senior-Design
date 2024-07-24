@@ -1,5 +1,7 @@
 from flask import Flask, render_template, jsonify, request, redirect, url_for, Response, flash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from io import BytesIO
+import pandas as pd
 import sqlite3
 import cv2
 import datetime
@@ -341,6 +343,76 @@ def gen(camera_id):  # generator function to serve the video feed frames
     cap.release()
     conn.close()
 
+
+@app.route('/download_excel', methods=['GET'])
+@login_required
+def download_excel(): # Save an excel file with the data obtained from the specific parameters
+    camera_id = request.args.get('camera_id')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    day_of_week = request.args.get('day_of_week')
+    start_time = request.args.get('start_time')
+    end_time = request.args.get('end_time')
+    lane = request.args.get('lane')
+    volume_min = request.args.get('volume_min')
+    volume_max = request.args.get('volume_max')
+
+    if not camera_id:
+        return jsonify({'error': 'Camera ID is required'}), 400
+
+    conn = sqlite3.connect('database/traffic.db')
+    cursor = conn.cursor()
+    query = f'SELECT lane_One, lane_Two, lane_Three, date, time, dotw FROM {camera_id} WHERE 1=1'
+    params = []
+
+    if start_date and end_date:
+        query += ' AND date BETWEEN ? AND ?'
+        params.extend([start_date, end_date])
+    if start_time and end_time:
+        query += ' AND time BETWEEN ? AND ?'
+        params.extend([start_time, end_time])
+    if day_of_week:
+        query += ' AND dotw = ?'
+        params.append(day_of_week)
+    if lane:
+        query += f' AND {lane} IS NOT NULL'
+        if volume_min and volume_max:
+            query += f' AND {lane} BETWEEN ? AND ?'
+            params.extend([volume_min, volume_max])
+        elif volume_min:
+            query += f' AND {lane} >= ?'
+            params.append(volume_min)
+        elif volume_max:
+            query += f' AND {lane} <= ?'
+            params.append(volume_max)
+    else:
+        if volume_min or volume_max:
+            flash('Volume data needs a specific lane to be specified.', 'error')
+            return redirect(url_for('search'))
+
+    query += ' ORDER BY date DESC, time DESC'
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    conn.close()
+
+    data = {
+        'Date': [row[3] for row in rows],
+        'Time': [row[4] for row in rows],
+        'Day of the Week': [row[5] for row in rows],
+        'Lane One Volume': [row[0] for row in rows],
+        'Lane Two Volume': [row[1] for row in rows],
+        'Lane Three Volume': [row[2] for row in rows]
+    }
+
+    df = pd.DataFrame(data)
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine='openpyxl')
+    df.to_excel(writer, index=False, sheet_name='Traffic Data')
+    writer.close()
+    output.seek(0)
+
+    return Response(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    headers={"Content-Disposition": "attachment;filename=traffic_data.xlsx"})
 
 if __name__ == '__main__':
     app.run(debug=True)

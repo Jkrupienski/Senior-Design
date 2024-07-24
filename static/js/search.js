@@ -1,7 +1,8 @@
-document.addEventListener('DOMContentLoaded', function() {  // add event listener for DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('search-form');  // get search form element by id
     const cleanupButton = document.getElementById('cleanup-button');  // get clean up button
-    const clearButton = document.getElementById('clear-search');  // get clear button
+    const clearButton = document.getElementById('clear-button');  // get clear button
+    const downloadButton = document.getElementById('download-button');
 
     if (form) {  // check if form element exists
         form.addEventListener('submit', async function(event) {  // add event listener for form submit
@@ -36,6 +37,16 @@ document.addEventListener('DOMContentLoaded', function() {  // add event listene
             form.reset();  // reset form fields
         });
     }
+
+
+
+    downloadButton.addEventListener('click', function() {
+        const formData = new FormData(form);
+        const searchParams = new URLSearchParams(formData).toString();
+        const downloadUrl = `/download_excel?${searchParams}`;
+
+        window.location.href = downloadUrl;
+    });
 
     async function updateChart(data) {  // async function to update chart with data
         const context = document.getElementById('trafficChart').getContext('2d');  // get context of traffic chart canvas

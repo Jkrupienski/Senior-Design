@@ -289,3 +289,44 @@ input[type="text"], input[type="password"], input[type="email"], select {  /* in
     color: #721c24;
     border: 1px solid #f5c6cb;
 }
+
+.main-container{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-left: 220px;
+    padding: 20px;
+    width: calc(100% - 220px);
+}
+
+.left-container{
+    flex: 2;
+    padding: 10px;
+}
+
+
+.right-container{
+    flex: 1;
+    padding: 10px;
+}
+
+.chart-container{
+    width: 100%;
+    height: 100%;
+}
+
+.canvas{
+    width: 100%;
+    height: 400px;
+}
+
+@media (max-width: 1200px){
+    .main-container{
+        flex-direction: column;
+    }
+
+    .left-container, .right-container{
+        width: 100%;
+    }
+}

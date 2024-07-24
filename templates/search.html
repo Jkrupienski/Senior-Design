@@ -65,11 +65,12 @@
                 <input type="number" id="volume_max" name="volume_max">
             </div>
         </div>
-        <!-- buttons row: search, clear, clean up -->
+        <!-- buttons row: search, clear, clean up, Download Excel -->
         <div class="button-row">
             <button type="submit">Search</button>
             <button type="button" id="clear-button">Clear</button>
             <button type="button" id="cleanup-button" class="cleanup-button">Clean Up</button>
+            <button type="button" id="download-button">Download Excel</button>
         </div>
     </form>
 </div>
@@ -99,4 +100,5 @@
 
 {% block scripts %}   <!-- go to search.js for js code -->
 <script src="{{ url_for('static', filename='js/search.js') }}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
 {% endblock %}

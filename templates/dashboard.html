@@ -30,7 +30,7 @@
         <a href="{{ url_for('login') }}">Login</a>  <!-- login link if user is not yet authenticated -->
         {% endif %}
     </div>
-    <div style="width: 33%;">  <!-- right 1/3 for chart(s) -->
+    <div class="right-container;">  <!-- right 1/3 for chart(s) -->
         <div class="chart-container">
             <canvas id="trafficChart"></canvas>  <!-- GO IN FOR TRAFFIC CHART ON DASHBOARD NOW -->
         </div>
@@ -39,5 +39,6 @@
 {% endblock %}
 
 {% block scripts %}  <!-- go to dashboard.js for js code -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Include Chart.js library -->
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}
