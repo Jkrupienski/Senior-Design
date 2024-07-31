@@ -7,6 +7,9 @@ import cv2
 import datetime
 import math
 import threading
+import pafy
+from pytube import YouTube
+import yt_dlp
 
 # initialize flask application, declare static folder and templates folder
 app = Flask(__name__, static_folder='static', template_folder='templates')
@@ -15,10 +18,17 @@ app.config['SECRET_KEY'] = 'KJSDP2024BASNET'  # for session management
 login_manager = LoginManager(app)  # initialize login manager for user sessions
 login_manager.login_view = 'login'
 
+
+
+
 car_counts = {  # dict to keep car counts for diff cameras
     'CAM01_HW_I90': [0, 0, 0],  # three lanes, add/take away if needed
-    'CAM02_AVE_HUNT': [0, 0, 0]  # may move these into a camera table in traffic.db
+    'CAM02_AVE_HUNT': [0, 0, 0],  # may move these into a camera table in traffic.db
+    'CAM03_NH_RABOUT': [0, 0, 0]
 }
+
+cameras = ['CAM01_HW_I90', 'CAM02_AVE_HUNT', 'CAM03_NH_RABOUT', 'https://www.youtube.com/watch?v=1fiF7B6VkCk']
+
 
 min_dist = 40  # declare global var for min dist btwn centroids and decay factor for tracked centroids
 decay_factor = 0.9
@@ -162,11 +172,13 @@ def get_data():
     volume_max = request.args.get('volume_max')
 
     if not camera_id:  # if not valid cam id
-        return jsonify({'error': 'Camera ID is required'})  # error msg
+        return jsonify({'error': 'Camera ID is required'}), 400  # error msg
 
     conn = sqlite3.connect('database/traffic.db')
     cursor = conn.cursor()
-    query = f'SELECT lane_One, lane_Two, lane_Three, date, time, dotw FROM {camera_id} WHERE 1=1'  # select data from table
+
+    # Ensure the table name is safe by using double quotes
+    query = f'SELECT lane_One, lane_Two, lane_Three, date, time, dotw FROM "{camera_id}" WHERE 1=1'
     params = []  # list to hold query parameters
 
     # create query, add to it depending on search parameters
@@ -177,7 +189,7 @@ def get_data():
         query += ' AND time BETWEEN ? AND ?'  # add time range
         params.extend([start_time, end_time])  # add times to query
     if day_of_week:  # searching via dotw
-        query += ' AND DOTW = ?'  # create query, start by adding dotw filter
+        query += ' AND dotw = ?'  # create query, start by adding dotw filter
         params.append(day_of_week)  # add dotw to parameters
     if lane:  # search via specific lane volume
         query += f' AND {lane} IS NOT NULL'  # and lane has data
@@ -214,7 +226,8 @@ def get_data():
 @app.route('/dashboard')  # VIDEO DASHBOARD ROUTE
 @login_required
 def dashboard():
-    cameras = ['CAM01_HW_I90', 'CAM02_AVE_HUNT']  # current camera options
+    global cameras
+     # current camera options
     return render_template('dashboard.html', cameras=cameras)  # render dashboard with camera options
 
 
@@ -271,10 +284,84 @@ def insert_lane_counts(camera_id, lane_counts):  # insert lane count into db
         conn.close()
 
 
+@app.route('/add_camera', methods=['POST'])
+@login_required
+def add_camera():
+    global cameras
+    global car_counts
+
+    if current_user.role not in ['Admin', 'Manager']:
+        flash('You do not have permission to add a camera.', 'danger')
+        return redirect(url_for('profile'))
+
+    camera_id = request.form.get('camera_id')
+    if not camera_id:
+        flash('Camera ID  required.', 'danger')
+        return redirect(url_for('profile'))
+
+    conn = sqlite3.connect('database/traffic.db')
+    cursor = conn.cursor()
+    try:
+        # Create a new table for the camera with three lanes
+        cursor.execute(f'''
+        CREATE TABLE IF NOT EXISTS "{camera_id}" (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lane_One INTEGER DEFAULT 0,
+            lane_Two INTEGER DEFAULT 0,
+            lane_Three INTEGER DEFAULT 0,
+            date TEXT NOT NULL,
+            time TEXT NOT NULL,
+            DOTW TEXT NOT NULL
+
+        )''')
+
+
+        conn.commit()
+
+
+        car_counts[camera_id] = [0, 0, 0]
+        cameras.append(camera_id)
+        flash('Camera added successfully.', 'success')
+    except sqlite3.Error as e:
+        flash(f'An error occurred: {e}', 'danger')
+    finally:
+        conn.close()
+
+    return redirect(url_for('profile'))
+
+
+def get_youtube_stream_url(youtube_url):
+    ydl_opts = {
+        'format': 'best',
+        'quiet': True,
+        'no_warnings': True,
+        'no_check_certificate': True,
+        'nocheckcertificate': True,
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info_dict = ydl.extract_info(youtube_url, download=False)
+        formats = info_dict.get('formats', None)
+        for f in formats:
+            if f.get('ext') == 'mp4' and f.get('acodec') != 'none' and f.get('vcodec') != 'none':
+                return f['url']
+    return None
+
+
 def gen(camera_id):  # generator function to serve the video feed frames
+
     global car_counts  # access global car count
-    video = f'{camera_id}.mp4'  # make a video file ext. w the name of the camera id
-    cap = cv2.VideoCapture(video)  # create a video capture for the video
+    print(camera_id)
+    if "youtube" not in camera_id:
+        video = f'{camera_id}.mp4'  # make a video file ext. w the name of the camera id
+        cap = cv2.VideoCapture(video)  # create a video capture for the video
+    else:
+        stream_url = get_youtube_stream_url(camera_id)
+        if stream_url is None:
+            print("Error: Could not get stream URL")
+            return
+        cap = cv2.VideoCapture(stream_url)
+
+
     car_cascade = cv2.CascadeClassifier('cars.xml')  # load haar cascade for car detection
 
     # define lane detection coords *** change validation method to be thru camera db later    <---- DEFINE LANE COORDS
@@ -326,10 +413,6 @@ def gen(camera_id):  # generator function to serve the video feed frames
 
         for start_x, width in lanes:  # draw rectangle for the lanes
             cv2.rectangle(frame, (start_x, Y - rectangle_thickness), (start_x + width, Y + rectangle_thickness), (150, 0, 0), 2)
-
-        for lane_num, total in enumerate(count):  # DISPLAY LANE COUNT end up taking away when live graph works
-            cv2.putText(frame, f'Lane {lane_num + 1} Count: {total}', (10, 30 + lane_num * 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
         current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # gather and display current date and time
         cv2.putText(frame, current_time, (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)

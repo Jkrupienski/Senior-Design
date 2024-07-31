@@ -1,4 +1,3 @@
-<!-- profile.html displays user's info and allows password reset -->
 {% extends "base.html" %}  <!-- extend base template -->
 
 {% block title %}Profile{% endblock %}  <!-- title -->
@@ -10,6 +9,7 @@
         <p><strong>Name:</strong> {{ current_user.name }}</p>  <!-- name -->
         <p><strong>Email:</strong> {{ current_user.email }}</p>  <!-- email -->
         <p>Access Level {{ current_user.access }}: {{ current_user.role }}</p>   <!-- access level and role -->
+        <p><strong>Role:</strong> {{ current_user.role }}</p>  <!-- debug: display role -->
     </div>
     <form action="{{ url_for('change_password') }}" method="POST" class="password-form">  <!-- form to change password -->
         <div class="form-group">  <!-- old password -->
@@ -31,5 +31,15 @@
             {% endif %}
         {% endwith %}
     </form>
+    {% if current_user.role == 'Admin' or current_user.role == 'Manager' %}  <!-- conditionally display button based on user role -->
+    <h2>Add New Camera</h2>
+    <form action="{{ url_for('add_camera') }}" method="POST" class="add-camera-form">  <!-- form to add camera -->
+        <div class="form-group">  <!-- camera id -->
+            <label for="camera_id">New Camera Source</label>
+            <input type="text" id="camera_id" name="camera_id" required>  <!-- camera id input -->
+        </div>
+        <button type="submit" class="form-button">Add Camera</button>  <!-- submit button to add camera -->
+    </form>
+    {% endif %}
 </div>
 {% endblock %}
