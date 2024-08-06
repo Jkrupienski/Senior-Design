@@ -4,8 +4,8 @@
 {% block title %}Dashboard{% endblock %}  <!-- title -->
 
 {% block content %}
-<div class="main-container" style="display: flex;">  <!-- main container for layout -->
-    <div style="width: 66%;">  <!-- take up left 2/3 of page so live charts can be displayed on right (or bottom?) -->
+<div class="main-container" style="display: flex; flex-wrap: wrap;">  <!-- main container for layout -->
+    <div style="flex: 2;"> <!-- use flex for better responsiveness -->
         <h1>Employee Dashboard</h1>  <!-- page header -->
         {% if current_user.is_authenticated %}  <!-- ensure user logged in -->
         <form id="search-form" class="form-container">  <!-- container for search box -->
@@ -30,15 +30,60 @@
         <a href="{{ url_for('login') }}">Login</a>  <!-- login link if user is not yet authenticated -->
         {% endif %}
     </div>
-    <div class="right-container;">  <!-- right 1/3 for chart(s) -->
-        <div class="chart-container">
-            <canvas id="trafficChart"></canvas>  <!-- GO IN FOR TRAFFIC CHART ON DASHBOARD NOW -->
+    <div style="flex: 1; padding-left: 20px;"> <!-- padding to separate from graph -->
+        <h2>Average Lane Speeds</h2>  <!-- header for average lane speeds -->
+        <div id="average-speeds">
+            <p>Lane One: <span id="lane-one-speed">0</span> mph</p>  <!-- display lane one speed -->
+            <p>Lane Two: <span id="lane-two-speed">0</span> mph</p>  <!-- display lane two speed -->
+            <p>Lane Three: <span id="lane-three-speed">0</span> mph</p>  <!-- display lane three speed -->
         </div>
     </div>
+</div>
+<div class="chart-container" style="margin-top: 20px;">  <!-- container for traffic chart -->
+    <canvas id="trafficChart"></canvas>  <!-- GO IN FOR TRAFFIC CHART ON DASHBOARD NOW -->
 </div>
 {% endblock %}
 
 {% block scripts %}  <!-- go to dashboard.js for js code -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Include Chart.js library -->
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listener for the camera selection form
+    document.getElementById('search-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        var cameraId = document.getElementById('camera_id').value;
+        document.getElementById('video-feed').src = "{{ url_for('video_feed') }}?camera_id=" + cameraId;
+        document.getElementById('camera-title').innerText = "Current Camera: " + cameraId;
+        updateAverageSpeeds(cameraId);
+    });
+
+    // Clear search form
+    document.getElementById('clear-search').addEventListener('click', function() {
+        document.getElementById('search-form').reset();
+        document.getElementById('video-feed').src = "{{ url_for('video_feed', camera_id='CAM01_HW_I90') }}";
+        document.getElementById('camera-title').innerText = "";
+        updateAverageSpeeds('CAM01_HW_I90');
+    });
+
+    // Function to fetch and display average speeds
+    function updateAverageSpeeds(cameraId) {
+        fetch('/avg_speeds?camera_id=' + cameraId)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('lane-one-speed').innerText = data.lane_one.toFixed(2);
+                document.getElementById('lane-two-speed').innerText = data.lane_two.toFixed(2);
+                document.getElementById('lane-three-speed').innerText = data.lane_three.toFixed(2);
+            })
+            .catch(error => console.error('Error fetching average speeds:', error));
+    }
+
+    // Update average speeds periodically (e.g., every minute)
+    setInterval(function() {
+        var cameraId = document.getElementById('camera_id').value || 'CAM01_HW_I90';
+        updateAverageSpeeds(cameraId);
+    }, 60000);
+    updateAverageSpeeds('camera_id'); // Initial call to update speeds
+});
+</script>
 {% endblock %}

@@ -107,9 +107,9 @@ h2 {  /* h2 styles */
 }
 
 .volume-group {
-    min-width: 72px; /* adjust width for volume boxes */
+    min-width: 72px;  /* adjust width for volume boxes */
     max-width: 72px;
-    margin: 0 10px; /* Add horizontal margin to create a gap */
+    margin: 0 10px;  /* Add horizontal margin to create a gap */
 }
 
 .form-group input, .form-group select {

@@ -7,9 +7,8 @@ import cv2
 import datetime
 import math
 import threading
-import pafy
-from pytube import YouTube
-import yt_dlp
+import numpy as np
+from collections import deque
 
 # initialize flask application, declare static folder and templates folder
 app = Flask(__name__, static_folder='static', template_folder='templates')
@@ -18,9 +17,6 @@ app.config['SECRET_KEY'] = 'KJSDP2024BASNET'  # for session management
 login_manager = LoginManager(app)  # initialize login manager for user sessions
 login_manager.login_view = 'login'
 
-
-
-
 car_counts = {  # dict to keep car counts for diff cameras
     'CAM01_HW_I90': [0, 0, 0],  # three lanes, add/take away if needed
     'CAM02_AVE_HUNT': [0, 0, 0],  # may move these into a camera table in traffic.db
@@ -28,7 +24,6 @@ car_counts = {  # dict to keep car counts for diff cameras
 }
 
 cameras = ['CAM01_HW_I90', 'CAM02_AVE_HUNT', 'CAM03_NH_RABOUT', 'https://www.youtube.com/watch?v=1fiF7B6VkCk']
-
 
 min_dist = 40  # declare global var for min dist btwn centroids and decay factor for tracked centroids
 decay_factor = 0.9
@@ -177,8 +172,8 @@ def get_data():
     conn = sqlite3.connect('database/traffic.db')
     cursor = conn.cursor()
 
-    # Ensure the table name is safe by using double quotes
-    query = f'SELECT lane_One, lane_Two, lane_Three, date, time, dotw FROM "{camera_id}" WHERE 1=1'
+    # ensure the table name is safe by using double quotes
+    query = f'SELECT lane_One, lane_Two, lane_Three, date, time, dotw FROM {camera_id} WHERE 1=1'
     params = []  # list to hold query parameters
 
     # create query, add to it depending on search parameters
@@ -226,18 +221,8 @@ def get_data():
 @app.route('/dashboard')  # VIDEO DASHBOARD ROUTE
 @login_required
 def dashboard():
-    global cameras
-     # current camera options
+    global cameras  # current camera options
     return render_template('dashboard.html', cameras=cameras)  # render dashboard with camera options
-
-
-@app.route('/submit_counts', methods=['POST'])  # SUBMIT COUNTS when user leaves dashboard or every minute
-@login_required
-def submit_counts():
-    camera_id = request.json.get('camera_id')  # get cam id that is being used
-    global car_counts  # access global car count
-    insert_lane_counts(camera_id, car_counts[camera_id])  # insert lane count into db
-    return jsonify({'status': 'success'})  # return success status
 
 
 @app.route('/reset_counts', methods=['POST'])  # RESET COUNTS at the start of every minute
@@ -268,20 +253,227 @@ def check_multiple(new, centroids):  # check if cents are too close to be separa
     return True  # no close centroids found
 
 
-def insert_lane_counts(camera_id, lane_counts):  # insert lane count into db
+def insert_lane_counts(camera_id, lane_counts, averages):  # insert lane count into db
     conn = sqlite3.connect('database/traffic.db')
     cursor = conn.cursor()
     current_time = datetime.datetime.now()  # gather current time and dotw for lane count storage
     DOTW = current_time.strftime('%A')
     try:  # add individual lane data to db with date and time ** problem later when not 3 lanes, method edits needed
-        cursor.execute(f'''INSERT INTO {camera_id} (lane_One, lane_Two, lane_Three, date, time, DOTW) 
-        VALUES (?, ?, ?, ?, ?, ?)''', (lane_counts[0], lane_counts[1], lane_counts[2],
-                                       current_time.date(), current_time.strftime('%H:%M:%S'), DOTW))
+        cursor.execute(f'''INSERT INTO {camera_id} (lane_One, lane_Two, lane_Three, date, time, DOTW, lane_One_Avg, lane_Two_Avg, lane_Three_Avg) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', (lane_counts[0], lane_counts[1], lane_counts[2], current_time.date(),
+                current_time.strftime('%H:%M:%S'), DOTW, round(averages[0], 2), round(averages[1], 2), round(averages[2], 2)))
         conn.commit()  # commit changes
     except sqlite3.IntegrityError:  # info already exists for time
         print(f"Data for time {current_time.strftime('%H:%M:%S')} already exists in {camera_id}.")
     finally:
         conn.close()
+
+
+def save_counts(camera_id, count, last_minute, lane_speeds):  # save count end of each min, clear count start of new min
+    while True:
+        now = datetime.datetime.now()  # get current time
+        seconds_to_wait = 59 - now.second  # calc sec left to wait until next min
+        threading.Event().wait(seconds_to_wait)  # wait until 59 seconds
+        now = datetime.datetime.now()  # update to the new time
+        if now.second == 59:  # if seconds == 59
+            average_speeds = calculate_average_speeds(lane_speeds)  # calc average speeds
+            insert_lane_counts(camera_id, count, average_speeds)  # insert lane count into db
+            last_minute = now.minute  # update last min
+        threading.Event().wait(1)  # ensure to start in the new minute
+        count[:] = [0, 0, 0]  # reset each lane's count
+
+
+def weighted_moving_average(values, weights):
+    weighted_avg = np.dot(values, weights) / np.sum(weights)
+    return weighted_avg
+
+
+def average_speeds():
+    return jsonify(average_speeds)
+
+
+def calculate_average_speeds(lane_speeds):
+    while True:
+        now = datetime.datetime.now()
+        seconds_to_wait = 59 - now.second
+        threading.Event().wait(seconds_to_wait)
+        now = datetime.datetime.now()
+        if now.second == 59:
+            average_speeds = {}
+            for lane, speeds in lane_speeds.items():
+                # Filter out unrealistic values
+                filtered_speeds = [speed for speed in speeds if 30 <= speed <= 100]
+                if filtered_speeds:
+                    average_speeds[lane] = (sum(filtered_speeds) / len(filtered_speeds))
+                else:
+                    average_speeds[lane] = 0  # Handle empty lists
+                lane_speeds[lane] = []  # Reset the lane speed list to an empty list
+            print("AVERAGE SPEEDS PRINTING")
+            print(average_speeds)
+            return average_speeds
+
+
+# ========================================================================================================
+# ========================================================================================================
+def gen(camera_id):  # generator function to serve the video feed frames  ** MAIN VEHICLE DETECTION LOGIC
+
+    src_points = np.float32([
+        [100, 300],
+        [500, 300],
+        [100, 700],
+        [500, 700]
+    ])
+    dst_points = np.float32([
+        [0, 0],
+        [2000, 0],
+        [0, 2000],
+        [2000, 2000]
+    ])
+
+    homography_matrix, _ = cv2.findHomography(src_points, dst_points)
+
+    prev_centroids = {}
+    car_ids = {}
+    car_speeds = {}
+    car_trails = {}
+    next_car_id = 0
+    meters_per_mile = 1609.34
+    smoothing_frames = 10
+    trail_fade_time = 5
+    decay_factor = 0.9
+
+    global car_counts  # access global car count
+    video = f'{camera_id}.mp4'  # make a video file ext. w the name of the camera id
+    cap = cv2.VideoCapture(video)  # create a video capture for the video
+    car_cascade = cv2.CascadeClassifier('cars.xml')  # load haar cascade for car detection
+
+    # define lane detection coords *** change validation method to be thru camera db later    <---- DEFINE LANE COORDS
+    lanes = [(275, 200), (476, 174), (650, 200)]  # lane detection boxes
+    rectangle_thickness = 10  # rectangle thickness
+    Y = 500  # rectangle height
+    count = [0, 0, 0]  # init count
+    tracked_cent = []  # init list of tracked centroids
+    lane_speeds = {i: [] for i in range(len(lanes))}  # dict to store speeds for each lane
+    last_minute = datetime.datetime.now().minute  # current min gathered to be used as previous minute reference
+    conn = sqlite3.connect('database/traffic.db')
+    cursor = conn.cursor()
+
+    # start new thread to save lane counts every min
+    threading.Thread(target=save_counts, args=(camera_id, count, last_minute, lane_speeds), daemon=True).start()
+
+    frame_skip = 2
+    frame_count = 0
+
+    while True:
+        ret, frame = cap.read()  # read frame from video
+        if not ret:  # if no frames
+            break
+        frame_count += 1
+        if frame_count % frame_skip != 0:
+            continue
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)  # convert to greyscale
+        cars = car_cascade.detectMultiScale(gray, 1.1, 1)  # detect cars in the frame
+
+        new_cent = [calc_cent(x, y, w, h) for (x, y, w, h) in cars]  # calc centroids for detected cars
+        # decay prev tracked centroids
+        tracked_cent = [(cent, age * decay_factor) for (cent, age) in tracked_cent if age * decay_factor > 0.1]
+
+        for (x, y, w, h), centroid in zip(cars, new_cent):  # iterate over each detected car and its centroid
+            # draw a circle at the centroid of the car on the frame for visualization
+            cv2.circle(frame, (centroid[0], centroid[1]), 5, (0, 255, 0), -1)  # draw circle onto centroid
+
+            coords = [cent for (cent, age) in tracked_cent]  # create a list of coordinates from the tracked centroids
+
+            if check_multiple(centroid, coords):  # check if new centroid is not too close to existing centroids
+                for lane_num, (start_x, width) in enumerate(lanes):  # iterate each lane w starting x coord and width
+                    # check if centroid is within the rectangle bounds of the lane
+                    if (Y - rectangle_thickness) <= centroid[1] <= (Y + rectangle_thickness) \
+                            and start_x <= centroid[0] <= start_x + width:
+                        current_time = datetime.datetime.now()  # get current time
+                        # create dict of current centroids with their bounding boxes
+                        current_centroids = {centroid: (x, y, w, h) for (x, y, w, h), centroid in zip(cars, new_cent)}
+
+                        for centroid in list(prev_centroids.keys()):  # iterate over prev cent to find the closest one
+                            min_dist = float('inf')
+                            closest_centroid = None
+                            # iterate over current centroids to find min distance to a previous centroid
+                            for curr_centroid in current_centroids.keys():
+                                dist = np.linalg.norm(np.array(centroid) - np.array(curr_centroid))  # calc dist
+                                if dist < min_dist and dist < 50:  # find closest centroid
+                                    min_dist = dist  # update min dist
+                                    closest_centroid = curr_centroid  # update closest cent to be current cent
+
+                            if closest_centroid is not None and centroid in prev_centroids:  # if close cent found
+                                points = np.array([[list(centroid)], [list(closest_centroid)]], dtype='float32')
+                                # apply homography transformation to points
+                                points_transformed = cv2.perspectiveTransform(points, homography_matrix)
+                                # calc the real-world distance between points
+                                real_world_distance = np.linalg.norm(points_transformed[0] - points_transformed[1])
+                                # calc time elapsed for movement
+                                time_elapsed = (current_time - prev_centroids[centroid][1]).total_seconds()
+                                if time_elapsed == 0:
+                                    time_elapsed = 1
+                                speed_m_per_s = real_world_distance / time_elapsed
+                                speed_mph = speed_m_per_s * 3600 / meters_per_mile  # convert the speed to miles per hr
+
+                                if speed_mph > 100:  # filter out unrealistic speeds
+                                    speed_mph = 0
+                                speed_mph = round(speed_mph, 2)
+
+                                if centroid not in car_ids:  # assign a new car ID if it doesn't exist
+                                    car_ids[centroid] = next_car_id
+                                    next_car_id += 1
+                                    # init deque for speed smoothing
+                                    car_speeds[car_ids[centroid]] = deque(maxlen=smoothing_frames)
+
+                                car_speeds[car_ids[centroid]].append(speed_mph)  # append the calc speed to the deque
+
+                                weights = np.linspace(1, 0.1, len(car_speeds[car_ids[centroid]]))  # calc avg of speeds
+                                avg_speed_mph = round(weighted_moving_average(np.array(car_speeds[car_ids[centroid]]),
+                                                                        weights), 2)
+
+                                # update the closest centroid with the new data
+                                prev_centroids[closest_centroid] = (closest_centroid, current_time)
+                                car_ids[closest_centroid] = car_ids.pop(centroid)
+
+                                # check if centroid should be displayed and add its speed to the lane speeds
+                                if (Y - rectangle_thickness) <= centroid[1] <= (Y + rectangle_thickness) and start_x <= \
+                                        centroid[0] <= start_x + width:
+                                    if not np.isnan(avg_speed_mph):
+                                        cv2.putText(frame, f'{int(avg_speed_mph)} mph',  # display speed on the frame
+                                                    (closest_centroid[0], closest_centroid[1] - 10),
+                                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                                        lane_speeds[lane_num].append(avg_speed_mph)  # add speed to list of lane speeds
+                                        print(avg_speed_mph)  # print speed for debugging
+
+                        for centroid in new_cent:  # add new cent to prev centroids for tracking
+                            if centroid not in prev_centroids:
+                                prev_centroids[centroid] = (centroid, current_time)
+                                car_ids[centroid] = next_car_id
+                                next_car_id += 1
+                                car_trails[car_ids[centroid]] = deque(maxlen=50)
+                                car_speeds[car_ids[centroid]] = deque(maxlen=smoothing_frames)
+
+                        count[lane_num] += 1  # increment the count for the lane
+                        tracked_cent.append((centroid, 1))  # add centroid to tracked list
+                        break  # exit loop after processing this lane
+
+        for start_x, width in lanes:  # draw rectangle for the lanes
+            cv2.rectangle(frame, (start_x, Y - rectangle_thickness), (start_x + width, Y + rectangle_thickness), (150, 0, 0), 2)
+
+        current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # gather and display current date and time
+        cv2.putText(frame, current_time, (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+        cv2.putText(frame, camera_id, (10, frame.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+
+        _, jpeg = cv2.imencode('.jpg', frame)  # encode frame as a jpeg (FOR WEBSITE DISPLAYING)
+        frame = jpeg.tobytes()  # convert frame to bytes
+        # yields data in increments, allows frame by frame video streaming to the user
+        yield (b'--frame\r\n'  # specify boundary for content
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')  # content type and frame w data in bytes
+    cap.release()
+    conn.close()
+# ========================================================================================================
+# ========================================================================================================
 
 
 @app.route('/add_camera', methods=['POST'])
@@ -304,17 +496,18 @@ def add_camera():
     try:
         # Create a new table for the camera with three lanes
         cursor.execute(f'''
-        CREATE TABLE IF NOT EXISTS "{camera_id}" (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            lane_One INTEGER DEFAULT 0,
-            lane_Two INTEGER DEFAULT 0,
-            lane_Three INTEGER DEFAULT 0,
-            date TEXT NOT NULL,
-            time TEXT NOT NULL,
-            DOTW TEXT NOT NULL
-
-        )''')
-
+            CREATE TABLE IF NOT EXISTS "{camera_id}" (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                lane_One INTEGER DEFAULT 0,
+                lane_Two INTEGER DEFAULT 0,
+                lane_Three INTEGER DEFAULT 0,
+                date TEXT NOT NULL,
+                time TEXT NOT NULL,
+                DOTW TEXT NOT NULL,
+                lane_One_Avg INTEGER DEFAULT 0,
+                lane_Two_Avg INTEGER DEFAULT 0, 
+                lane_Three_Avg INTEGER DEFAULT 0
+            )''')
 
         conn.commit()
 
@@ -330,106 +523,34 @@ def add_camera():
     return redirect(url_for('profile'))
 
 
-def get_youtube_stream_url(youtube_url):
-    ydl_opts = {
-        'format': 'best',
-        'quiet': True,
-        'no_warnings': True,
-        'no_check_certificate': True,
-        'nocheckcertificate': True,
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info_dict = ydl.extract_info(youtube_url, download=False)
-        formats = info_dict.get('formats', None)
-        for f in formats:
-            if f.get('ext') == 'mp4' and f.get('acodec') != 'none' and f.get('vcodec') != 'none':
-                return f['url']
-    return None
+@app.route('/avg_speeds', methods=['GET'])
+@login_required
+def get_average_speeds():
+    camera_id = 'CAM01_HW_I90'
+    #camera_id = request.args.get('camera_id')
+    if not camera_id:
+        return jsonify({'error': 'Camera ID is required'}), 400
 
-
-def gen(camera_id):  # generator function to serve the video feed frames
-
-    global car_counts  # access global car count
-    print(camera_id)
-    if "youtube" not in camera_id:
-        video = f'{camera_id}.mp4'  # make a video file ext. w the name of the camera id
-        cap = cv2.VideoCapture(video)  # create a video capture for the video
-    else:
-        stream_url = get_youtube_stream_url(camera_id)
-        if stream_url is None:
-            print("Error: Could not get stream URL")
-            return
-        cap = cv2.VideoCapture(stream_url)
-
-
-    car_cascade = cv2.CascadeClassifier('cars.xml')  # load haar cascade for car detection
-
-    # define lane detection coords *** change validation method to be thru camera db later    <---- DEFINE LANE COORDS
-    lanes = [(275, 200), (476, 174), (650, 200)]  # lane detection boxes
-    rectangle_thickness = 10  # rectangle thickness
-    Y = 500  # rectangle height
-    count = [0, 0, 0]  # init count
-    tracked_cent = []  # init list of tracked centroids
-    last_minute = datetime.datetime.now().minute  # current min gathered to be used as previous minute reference
     conn = sqlite3.connect('database/traffic.db')
     cursor = conn.cursor()
-
-    def save_counts():  # save lane count end of every minute and clear count at start of new minute
-        nonlocal last_minute  # use last_minute variable for last min
-        while True:
-            now = datetime.datetime.now()  # get current time
-            seconds_to_wait = 59 - now.second  # calc sec left to wait until next min
-            threading.Event().wait(seconds_to_wait)  # wait until 59 seconds
-            now = datetime.datetime.now()  # update to the new time
-            if now.second == 59:  # if seconds == 59
-                insert_lane_counts(camera_id, count)  # insert lane count into db
-                last_minute = now.minute  # update last min
-            threading.Event().wait(1)  # ensure to start in the new minute
-            count[:] = [0, 0, 0]  # reset each lane's count
-    threading.Thread(target=save_counts, daemon=True).start()  # start new thread to save lane counts every min
-
-    while True:
-        ret, frame = cap.read()  # read frame from video
-        if not ret:  # if no frames
-            break
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)  # convert to greyscale
-        cars = car_cascade.detectMultiScale(gray, 1.1, 1)  # detect cars in the frame
-
-        new_cent = [calc_cent(x, y, w, h) for (x, y, w, h) in cars]  # calc centroids for detected cars
-        # decay prev. tracked centroids
-        tracked_cent = [(cent, age * decay_factor) for (cent, age) in tracked_cent if age * decay_factor > 0.1]
-
-        for centroid in new_cent:  # for new detected centroid
-            cv2.circle(frame, (centroid[0], centroid[1]), 5, (0, 255, 0), -1)  # calc centroid based off bounding box
-            coords = [cent for (cent, age) in tracked_cent]  # apply decay to tracked centroids
-            if check_multiple(centroid, coords):  # check if multiple centroids on same vehicle
-                # list of tuple, tuple represents lane and has starting x-coords and width of lane
-                for lane_num, (start_x, width) in enumerate(lanes):  # check if cent is within lane's rectangle bounds
-                    if (Y - rectangle_thickness) <= centroid[1] <= (Y + rectangle_thickness) \
-                            and start_x <= centroid[0] <= start_x + width:
-                        count[lane_num] += 1  # add one to total lane count
-                        tracked_cent.append((centroid, 1))  # add centroid to tracked list, so it won't be counted again
-                        break
-
-        for start_x, width in lanes:  # draw rectangle for the lanes
-            cv2.rectangle(frame, (start_x, Y - rectangle_thickness), (start_x + width, Y + rectangle_thickness), (150, 0, 0), 2)
-
-        current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # gather and display current date and time
-        cv2.putText(frame, current_time, (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-        cv2.putText(frame, camera_id, (10, frame.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-
-        _, jpeg = cv2.imencode('.jpg', frame)  # encode frame as a jpeg (FOR WEBSITE DISPLAYING)
-        frame = jpeg.tobytes()  # convert frame to bytes
-        # yields data in increments, allows frame by frame video streaming to the user
-        yield (b'--frame\r\n'  # specify boundary for content
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')  # content type and frame w data in bytes
-    cap.release()
+    cursor.execute(f'SELECT lane_One_Avg, lane_Two_Avg, lane_Three_Avg FROM {camera_id} ORDER BY date DESC, time DESC LIMIT 1')
+    row = cursor.fetchone()
     conn.close()
+
+    if row:
+        data = {
+            'lane_One': row[0],
+            'lane_Two': row[1],
+            'lane_Three': row[2]
+        }
+        return jsonify(data)
+    else:
+        return jsonify({'lane_One': 0, 'lane_Two': 0, 'lane_Three': 0})
 
 
 @app.route('/download_excel', methods=['GET'])
 @login_required
-def download_excel(): # Save an excel file with the data obtained from the specific parameters
+def download_excel():  # save an excel file with the data obtained from the specific parameters
     camera_id = request.args.get('camera_id')
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
@@ -445,7 +566,7 @@ def download_excel(): # Save an excel file with the data obtained from the speci
 
     conn = sqlite3.connect('database/traffic.db')
     cursor = conn.cursor()
-    query = f'SELECT lane_One, lane_Two, lane_Three, date, time, dotw FROM {camera_id} WHERE 1=1'
+    query = f'SELECT lane_One, lane_Two, lane_Three, date, time, dotw, lane_One_Avg, lane_Two_Avg, lane_Three_Avg FROM {camera_id} WHERE 1=1'
     params = []
 
     if start_date and end_date:
@@ -479,12 +600,15 @@ def download_excel(): # Save an excel file with the data obtained from the speci
     conn.close()
 
     data = {
-        'Date': [row[3] for row in rows],
-        'Time': [row[4] for row in rows],
+        'Date': [row[4] for row in rows],
+        'Time': [row[5] for row in rows],
         'Day of the Week': [row[5] for row in rows],
         'Lane One Volume': [row[0] for row in rows],
         'Lane Two Volume': [row[1] for row in rows],
-        'Lane Three Volume': [row[2] for row in rows]
+        'Lane Three Volume': [row[2] for row in rows],
+        'Lane One Average Speed' : [row[6] for row in rows],
+        'Lane Two Average Speed': [row[7] for row in rows],
+        'Lane Three Average Speed': [row[8] for row in rows]
     }
 
     df = pd.DataFrame(data)
@@ -495,7 +619,8 @@ def download_excel(): # Save an excel file with the data obtained from the speci
     output.seek(0)
 
     return Response(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    headers={"Content-Disposition": "attachment;filename=traffic_data.xlsx"})
+                    headers={"Content-Disposition": f"attachment;filename={camera_id}.xlsx"})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
